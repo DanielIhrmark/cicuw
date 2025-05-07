@@ -2,3 +2,4 @@ streamlit
 altair
 numpy
 openpyxl
+plotly
