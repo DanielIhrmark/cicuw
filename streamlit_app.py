@@ -2,38 +2,32 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import os
-import gdown
 import re
+import io
 
-
-# ========== User Authentication ==========
-def check_login():
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-
-    if not st.session_state.authenticated:
-        with st.form("Login"):
-            st.title("🔐 Login Required")
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login")
-
-            if submit:
-                if username in st.secrets["users"] and st.secrets["users"][username] == password:
-                    st.session_state.authenticated = True
-                    st.rerun()
-                else:
-                    st.error("Invalid username or password")
-
-    return st.session_state.authenticated
-
-
-# ========== Setup ==========
+# ========== Page Setup ==========
 st.set_page_config(page_title="Topic and Sentiment Explorer", layout="wide")
 
-if not check_login():
-    st.stop()
+# ========== Authentication ==========
+def show_login():
+    st.title("🔐 Login Required")
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submit = st.form_submit_button("Login")
 
+        if submit:
+            if username in st.secrets["users"] and st.secrets["users"][username] == password:
+                st.session_state.authenticated = True
+            else:
+                st.error("Invalid username or password")
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    show_login()
+    st.stop()
 
 # ========== Load Data ==========
 @st.cache_data
@@ -120,8 +114,6 @@ with tabs[0]:
     cols = ["Topic", "Sentiment_Label"] + [col for col in df_display.columns if col not in ["Topic", "Sentiment_Label"]]
     df_display = df_display[cols]
     st.dataframe(df_display, use_container_width=True)
-
-    import io
 
     excel_buffer = io.BytesIO()
     filtered_df.to_excel(excel_buffer, index=False, engine='openpyxl')
@@ -246,10 +238,3 @@ with tabs[3]:
         tooltip=["Topic", "Sentiment_Label", "Proportion"]
     )
     st.altair_chart(heatmap, use_container_width=True)
-
-
-
-
-
-
-
