@@ -4,6 +4,8 @@ import altair as alt
 import os
 import re
 import io
+import plotly.express as px
+
 
 # ========== Page Setup ==========
 st.set_page_config(page_title="Topic and Sentiment Explorer", layout="wide")
@@ -123,7 +125,7 @@ with tabs[0]:
     # === Row count summary ===
     st.markdown(f"**🔢 Filtered documents: {len(df_display)}**")
 
-    # === Channel distribution pie chart grouped by Sentiment_Label ===
+    # === Sunburst chart: Channel (inner) > Sentiment (outer) ===
     if all(col in df_display.columns for col in ["Channel", "Sentiment_Label"]):
         channel_sentiment_counts = (
             df_display.groupby(["Channel", "Sentiment_Label"])
@@ -131,17 +133,21 @@ with tabs[0]:
             .reset_index(name="Count")
         )
 
-        pie_chart = alt.Chart(channel_sentiment_counts).mark_arc().encode(
-            theta=alt.Theta("Count:Q", title="Documents"),
-            color=alt.Color("Sentiment_Label:N", title="Sentiment"),
-            tooltip=["Channel", "Sentiment_Label", "Count"]
-        ).properties(
-            width=400,
-            height=400,
-            title="Channel Distribution by Sentiment"
+        fig = px.sunburst(
+            channel_sentiment_counts,
+            path=["Channel", "Sentiment_Label"],
+            values="Count",
+            color="Sentiment_Label",
+            color_discrete_map={
+                "positive": "green",
+                "neutral": "blue",
+                "negative": "red"
+            },
+            title="Channel and Sentiment Distribution"
         )
 
-        st.altair_chart(pie_chart, use_container_width=False)
+        st.plotly_chart(fig, use_container_width=True)
+
 
     # === Max rows slider (just above table) ===
     max_rows = st.slider("Max rows to display", 10, 500, 100, step=10)
