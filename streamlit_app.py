@@ -113,7 +113,7 @@ with tabs[0]:
         df_display = df_display.drop(columns=["Column"])
     cols = ["Topic", "Sentiment_Label"] + [col for col in df_display.columns if col not in ["Topic", "Sentiment_Label"]]
     df_display = df_display[cols]
-    st.dataframe(df_display, use_container_width=True)
+    st.dataframe(df_display.head(10), use_container_width=True)
 
     excel_buffer = io.BytesIO()
     filtered_df.to_excel(excel_buffer, index=False, engine='openpyxl')
