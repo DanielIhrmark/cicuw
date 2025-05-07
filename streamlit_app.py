@@ -109,33 +109,53 @@ tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling
 with tabs[0]:
     st.subheader("📄 Overview")
 
-    # Copy filtered DataFrame
+    # Copy and clean display data
     df_display = filtered_df.copy()
-
-    # Drop unwanted column if it exists
     if "Column" in df_display.columns:
         df_display = df_display.drop(columns=["Column"])
 
-    # Define which columns you want to display (and ensure they exist in the DataFrame)
-    preferred_columns = ["Published Date", "Channel", "Title", "Topic", "Topic_Keywords", "Sentiment_Label", "URL", "Text"]
+    # Define and validate preferred columns
+    preferred_columns = ["Published Date", "Channel", "Topic", "Sentiment_Label", "Text"]
     existing_columns = [col for col in preferred_columns if col in df_display.columns]
-
-    # Fallback: if no preferred columns are found, just use everything
     if not existing_columns:
         existing_columns = df_display.columns.tolist()
 
-    # Let user control how many rows to view
-    max_rows = st.slider("Max rows to display", 10, 1000, 100, step=10)
+    # === Row count summary ===
+    st.markdown(f"**🔢 Filtered documents: {len(df_display)}**")
 
-    # Display limited, selected columns
+    # === Channel distribution pie chart grouped by Sentiment_Label ===
+    if all(col in df_display.columns for col in ["Channel", "Sentiment_Label"]):
+        channel_sentiment_counts = (
+            df_display.groupby(["Channel", "Sentiment_Label"])
+            .size()
+            .reset_index(name="Count")
+        )
+
+        pie_chart = alt.Chart(channel_sentiment_counts).mark_arc().encode(
+            theta=alt.Theta("Count:Q", title="Documents"),
+            color=alt.Color("Sentiment_Label:N", title="Sentiment"),
+            tooltip=["Channel", "Sentiment_Label", "Count"]
+        ).properties(
+            width=400,
+            height=400,
+            title="Channel Distribution by Sentiment"
+        )
+
+        st.altair_chart(pie_chart, use_container_width=False)
+
+    # === Max rows slider (just above table) ===
+    max_rows = st.slider("Max rows to display", 10, 500, 100, step=10)
+
+    # === Data preview table ===
     st.dataframe(df_display[existing_columns].head(max_rows), use_container_width=True)
 
+    # === Download button ===
     excel_buffer = io.BytesIO()
-    filtered_df.to_excel(excel_buffer, index=False, engine='openpyxl')
+    df_display[existing_columns].head(max_rows).to_excel(excel_buffer, index=False, engine='openpyxl')
     excel_buffer.seek(0)
 
     st.download_button(
-        label="📥 Download Filtered Data as Excel",
+        label="📥 Download Displayed Data as Excel",
         data=excel_buffer,
         file_name="filtered_results.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
