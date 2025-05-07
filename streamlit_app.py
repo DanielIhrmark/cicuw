@@ -8,7 +8,7 @@ import plotly.express as px
 
 
 # ========== Page Setup ==========
-st.set_page_config(page_title="Topic and Sentiment Explorer", layout="wide")
+st.set_page_config(page_title="CICuW Datahhub", layout="wide")
 
 # ========== Authentication ==========
 def show_login():
