@@ -35,17 +35,9 @@ if not check_login():
     st.stop()
 
 
-# ========== Load Data from Google Drive ==========
+# ========== Load Data ==========
 @st.cache_data
-def load_data():
-    file_id = "1Mv9tStsGqm2QwbRK_7Ba2yBDhTH0SBgD"  # Replace with your actual file ID
-    output = "youtube_topics_with_sentiment.pkl"
-    if not os.path.exists(output):
-        gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
-    return pd.read_pickle(output)
-
-
-df = load_data()
+df = pd.read_pickle("youtube_topics_with_sentiment.pkl")
 
 # ========== Sidebar Filters ==========
 st.sidebar.title("Filters")
