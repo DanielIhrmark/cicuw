@@ -108,12 +108,27 @@ tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling
 
 with tabs[0]:
     st.subheader("📄 Overview")
+
+    # Copy filtered DataFrame
     df_display = filtered_df.copy()
+
+    # Drop unwanted column if it exists
     if "Column" in df_display.columns:
         df_display = df_display.drop(columns=["Column"])
-    cols = ["Topic", "Sentiment_Label"] + [col for col in df_display.columns if col not in ["Topic", "Sentiment_Label"]]
-    df_display = df_display[cols]
-    st.dataframe(df_display.head(10), use_container_width=True)
+
+    # Define which columns you want to display (and ensure they exist in the DataFrame)
+    preferred_columns = ["Published Date", "Channel", "Title", "Topic", "Topic_Keywords", "Sentiment_Label", "URL", "Text"]
+    existing_columns = [col for col in preferred_columns if col in df_display.columns]
+
+    # Fallback: if no preferred columns are found, just use everything
+    if not existing_columns:
+        existing_columns = df_display.columns.tolist()
+
+    # Let user control how many rows to view
+    max_rows = st.slider("Max rows to display", 10, 1000, 100, step=10)
+
+    # Display limited, selected columns
+    st.dataframe(df_display[existing_columns].head(max_rows), use_container_width=True)
 
     excel_buffer = io.BytesIO()
     filtered_df.to_excel(excel_buffer, index=False, engine='openpyxl')
