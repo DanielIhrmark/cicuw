@@ -37,7 +37,10 @@ if not check_login():
 
 # ========== Load Data ==========
 @st.cache_data
-df = pd.read_pickle("youtube_topics_with_sentiment.pkl")
+def load_data():
+    return pd.read_pickle("youtube_topics_with_sentiment.pkl")
+
+df = load_data()
 
 # ========== Sidebar Filters ==========
 st.sidebar.title("Filters")
