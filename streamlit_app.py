@@ -205,9 +205,8 @@ with tabs[1]:
     st.altair_chart(time_chart_sent, use_container_width=True)
 
 with tabs[2]:
-    st.subheader("📈 Topic Distribution (Pie Chart)")
+    
     st.subheader("🗝️ Topic Keywords Reference")
-
     # Create and display a simple topic-keywords reference table
     topic_keywords_table = (
         filtered_df[["Topic", "Topic_Keywords"]]
@@ -218,6 +217,7 @@ with tabs[2]:
 
     st.dataframe(topic_keywords_table, use_container_width=True)
 
+    st.subheader("📈 Topic Distribution (Pie Chart)")
     topic_counts = filtered_df["Topic"].value_counts().reset_index()
     topic_counts.columns = ["Topic", "Count"]
     pie_chart = alt.Chart(topic_counts).mark_arc().encode(
