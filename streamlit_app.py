@@ -330,10 +330,9 @@ with tabs[5]:
     if not (2 <= len(selected) <= 5):
         st.info("Please select between 2 and 5 channels to generate the comparison.")
     else:
-        # === Collect word frequencies and channel occurrences ===
+        # === Collect word frequencies and which channels they appear in ===
         word_freq_total = Counter()
         word_channel_map = defaultdict(set)
-        word_freq_per_channel = {}
 
         def get_word_freq(df, channel):
             texts = df[df["Channel"] == channel]["Text"].dropna().str.cat(sep=" ")
@@ -344,12 +343,11 @@ with tabs[5]:
         for channel in selected:
             freq = get_word_freq(filtered_df, channel)
             filtered_freq = {word: count for word, count in freq.items() if count >= min_freq}
-            word_freq_per_channel[channel] = filtered_freq
             for word, count in filtered_freq.items():
                 word_freq_total[word] += count
                 word_channel_map[word].add(channel)
 
-        # === Build word data for Plotly ===
+        # === Build dataframe ===
         rows = []
         for word, chans in word_channel_map.items():
             rows.append({
@@ -361,12 +359,17 @@ with tabs[5]:
 
         df_wc = pd.DataFrame(rows)
 
-        # === Add fake layout positions for visual variety ===
-        np.random.seed(42)
-        df_wc["x"] = np.random.normal(size=len(df_wc))
-        df_wc["y"] = np.random.normal(size=len(df_wc))
+        # === Safety check ===
+        if df_wc.empty:
+            st.warning("No words meet the frequency threshold for the selected channels.")
+            st.stop()
 
-        # === Generate Plotly figure ===
+        # === Assign layout coordinates ===
+        np.random.seed(42)
+        df_wc["x"] = np.random.normal(loc=0, scale=2.0, size=len(df_wc))
+        df_wc["y"] = np.random.normal(loc=0, scale=2.0, size=len(df_wc))
+
+        # === Plot with Plotly ===
         fig = px.scatter(
             df_wc,
             x="x",
@@ -387,12 +390,11 @@ with tabs[5]:
         fig.update_traces(
             textposition="top center",
             marker=dict(line=dict(width=0.5, color="black")),
-            textfont=dict(size=14)
+            textfont=dict(size=16)
         )
 
         fig.update_layout(
             height=700,
-            showlegend=False,
             title="Interactive Word Cloud by Channel Overlap<br><sub>Hover to see word details</sub>",
             margin=dict(l=20, r=20, t=50, b=20),
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
