@@ -5,6 +5,7 @@ import os
 import re
 import io
 import plotly.express as px
+import streamlit.components.v1 as components
 
 
 # ========== Page Setup ==========
@@ -252,6 +253,22 @@ with tabs[2]:
     st.altair_chart(time_chart_topic, use_container_width=True)
 
 with tabs[3]:
+    st.subheader("📂 Topic Visualizations (HTML)")
+
+    def display_html_file(file_path, height=600):
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            components.html(html_content, height=height, scrolling=True)
+        else:
+            st.warning(f"⚠️ File not found: {file_path}")
+
+    display_html_file("hierarchy.html", height=600)
+    display_html_file("intertopic_map.html", height=600)
+    display_html_file("heatmap.html", height=600)
+
+
+with tabs[4]:
     st.subheader("🔀 Sentiment per Topic")
     intersection_data = (
         filtered_df.groupby(["Topic", "Sentiment_Label"])
