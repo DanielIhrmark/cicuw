@@ -107,7 +107,7 @@ if keyword_topic:
 filtered_df = filtered_df[filtered_df["Topic"].isin(selected_topics)]
 
 # ========== Tab Layout ==========
-tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling", "🔀 Topic & Sentiment"])
+tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling", "📂Static Topic Visualizations", "🔀 Topic & Sentiment"])
 
 with tabs[0]:
     st.subheader("📄 Overview")
