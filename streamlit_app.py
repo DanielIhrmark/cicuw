@@ -320,17 +320,15 @@ nltk.download('stopwords')
 stop_words = set(stopwords.words('english') + stopwords.words('swedish'))
 
 with tabs[5]:
-    st.subheader("🌈 Interactive Word Cloud by Channel Overlap")
+    st.subheader("🫧 Bubble Graph of Word Frequencies Across Channels")
 
     available_channels = sorted(filtered_df["Channel"].dropna().unique())
     selected = st.multiselect("Select 2–5 channels to compare", available_channels, default=available_channels[:3])
-
     min_freq = st.slider("Minimum Word Frequency", 1, 20, 3)
 
     if not (2 <= len(selected) <= 5):
-        st.info("Please select between 2 and 5 channels to generate the comparison.")
+        st.info("Please select between 2 and 5 channels to generate the bubble graph.")
     else:
-        # === Collect word frequencies and which channels they appear in ===
         word_freq_total = Counter()
         word_channel_map = defaultdict(set)
 
@@ -347,58 +345,50 @@ with tabs[5]:
                 word_freq_total[word] += count
                 word_channel_map[word].add(channel)
 
-        # === Build dataframe ===
         rows = []
         for word, chans in word_channel_map.items():
-            rows.append({
-                "word": word,
-                "frequency": word_freq_total[word],
-                "channels": ", ".join(sorted(chans)),
-                "channel_count": len(chans)
-            })
+            count = word_freq_total[word]
+            if count >= min_freq:
+                rows.append({
+                    "word": word,
+                    "frequency": count,
+                    "channels": ", ".join(sorted(chans)),
+                    "channel_count": len(chans)
+                })
 
-        df_wc = pd.DataFrame(rows)
+        df_bubble = pd.DataFrame(rows)
 
-        # === Safety check ===
-        if df_wc.empty:
+        if df_bubble.empty:
             st.warning("No words meet the frequency threshold for the selected channels.")
             st.stop()
 
-        # === Assign layout coordinates ===
-        np.random.seed(42)
-        df_wc["x"] = np.random.normal(loc=0, scale=2.0, size=len(df_wc))
-        df_wc["y"] = np.random.normal(loc=0, scale=2.0, size=len(df_wc))
+        # Sort to control layout
+        df_bubble = df_bubble.sort_values("frequency", ascending=False).head(100)
+        df_bubble["index"] = range(len(df_bubble))
 
-        # === Plot with Plotly ===
         fig = px.scatter(
-            df_wc,
-            x="x",
-            y="y",
+            df_bubble,
+            x="index",
+            y="channel_count",
             size="frequency",
             color="channel_count",
             hover_name="word",
-            hover_data={
-                "frequency": True,
-                "channels": True,
-                "channel_count": True,
-                "x": False,
-                "y": False
-            },
+            hover_data=["frequency", "channels"],
             text="word"
         )
 
         fig.update_traces(
             textposition="top center",
             marker=dict(line=dict(width=0.5, color="black")),
-            textfont=dict(size=16)
+            textfont=dict(size=14)
         )
 
         fig.update_layout(
             height=700,
-            title="Interactive Word Cloud by Channel Overlap<br><sub>Hover to see word details</sub>",
-            margin=dict(l=20, r=20, t=50, b=20),
-            xaxis=dict(showgrid=False, zeroline=False, visible=False),
-            yaxis=dict(showgrid=False, zeroline=False, visible=False)
+            title="Bubble Graph of Word Frequencies<br><sub>Size = frequency, Color = shared channels</sub>",
+            xaxis=dict(title="Words (Top 100)", showgrid=False, tickvals=[]),
+            yaxis=dict(title="Number of Channels Appearing In", showgrid=True),
+            showlegend=False
         )
 
         st.plotly_chart(fig, use_container_width=True)
