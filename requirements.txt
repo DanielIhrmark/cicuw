@@ -3,6 +3,4 @@ altair
 numpy
 openpyxl
 plotly
-matplotlib
-wordcloud
 nltk
