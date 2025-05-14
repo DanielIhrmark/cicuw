@@ -320,15 +320,21 @@ nltk.download('stopwords')
 stop_words = set(stopwords.words('english') + stopwords.words('swedish'))
 
 with tabs[5]:
-    st.subheader("🫧 Bubble Graph of Word Frequencies Across Channels")
+    st.subheader("🫧 Bubble Graph: Frequency vs. Channel Overlap")
 
     available_channels = sorted(filtered_df["Channel"].dropna().unique())
-    selected = st.multiselect("Select 2–5 channels to compare", available_channels, default=available_channels[:3])
-    min_freq = st.slider("Minimum Word Frequency", 1, 20, 3)
+    selected = st.multiselect("Select channels to compare", available_channels, default=available_channels[:3])
 
-    if not (2 <= len(selected) <= 5):
-        st.info("Please select between 2 and 5 channels to generate the bubble graph.")
+    if len(selected) < 2:
+        st.info("Please select at least 2 channels to generate the bubble graph.")
     else:
+        min_freq = st.slider("Minimum Word Frequency", 1, 20, 3)
+        max_words = st.slider("Maximum Number of Words Displayed", 50, 500, 100, step=50)
+        
+        # === Filter Toggles ===
+        show_shared_only = st.checkbox("Show only shared words (2+ channels)", value=False)
+        show_unique_only = st.checkbox("Show only unique words (1 channel only)", value=False)
+
         word_freq_total = Counter()
         word_channel_map = defaultdict(set)
 
@@ -348,27 +354,30 @@ with tabs[5]:
         rows = []
         for word, chans in word_channel_map.items():
             count = word_freq_total[word]
+            chan_count = len(chans)
             if count >= min_freq:
+                if show_shared_only and chan_count < 2:
+                    continue
+                if show_unique_only and chan_count > 1:
+                    continue
                 rows.append({
                     "word": word,
                     "frequency": count,
                     "channels": ", ".join(sorted(chans)),
-                    "channel_count": len(chans)
+                    "channel_count": chan_count
                 })
 
         df_bubble = pd.DataFrame(rows)
 
         if df_bubble.empty:
-            st.warning("No words meet the frequency threshold for the selected channels.")
+            st.warning("No words meet the frequency threshold and selected filters.")
             st.stop()
 
-        # Sort to control layout
-        df_bubble = df_bubble.sort_values("frequency", ascending=False).head(100)
-        df_bubble["index"] = range(len(df_bubble))
+        df_bubble = df_bubble.sort_values("frequency", ascending=False).head(max_words)
 
         fig = px.scatter(
             df_bubble,
-            x="index",
+            x="frequency",
             y="channel_count",
             size="frequency",
             color="channel_count",
@@ -385,9 +394,9 @@ with tabs[5]:
 
         fig.update_layout(
             height=700,
-            title="Bubble Graph of Word Frequencies<br><sub>Size = frequency, Color = shared channels</sub>",
-            xaxis=dict(title="Words (Top 100)", showgrid=False, tickvals=[]),
-            yaxis=dict(title="Number of Channels Appearing In", showgrid=True),
+            title="Bubble Graph: Word Frequency vs. Channel Overlap<br><sub>X = Frequency, Y = Number of Channels</sub>",
+            xaxis_title="Word Frequency (Total)",
+            yaxis_title="Number of Channels Word Appears In",
             showlegend=False
         )
 
