@@ -4,15 +4,14 @@ import altair as alt
 import os
 import re
 import io
+import numpy as np
 import plotly.express as px
 import streamlit.components.v1 as components
-import matplotlib.pyplot as plt               
-from wordcloud import WordCloud              
-from collections import Counter, defaultdict 
-import nltk                                  
-from nltk.corpus import stopwords           
-from io import BytesIO                       
-from datetime import datetime               
+
+from collections import Counter, defaultdict
+import nltk
+from nltk.corpus import stopwords
+from datetime import datetime             
 
 
 # ========== Page Setup ==========
