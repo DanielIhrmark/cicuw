@@ -6,6 +6,13 @@ import re
 import io
 import plotly.express as px
 import streamlit.components.v1 as components
+import matplotlib.pyplot as plt               
+from wordcloud import WordCloud              
+from collections import Counter, defaultdict 
+import nltk                                  
+from nltk.corpus import stopwords           
+from io import BytesIO                       
+from datetime import datetime               
 
 
 # ========== Page Setup ==========
@@ -107,7 +114,7 @@ if keyword_topic:
 filtered_df = filtered_df[filtered_df["Topic"].isin(selected_topics)]
 
 # ========== Tab Layout ==========
-tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling", "📂Static Topic Visualizations", "🔀 Topic & Sentiment"])
+tabs = st.tabs(["📄 Overview", "📊 Sentiment Analysis", "🧠 Topic Modeling", "📂Static Topic Visualizations", "🔀 Topic & Sentiment", "🌈 Multi-Channel Word Cloud Comparison"])
 
 with tabs[0]:
     st.subheader("📄 Overview")
@@ -308,3 +315,75 @@ with tabs[4]:
         tooltip=["Topic", "Sentiment_Label", "Proportion"]
     )
     st.altair_chart(heatmap, use_container_width=True)
+
+# Ensure stopwords are available
+nltk.download('stopwords')
+stop_words = set(stopwords.words('english') + stopwords.words('swedish'))
+
+with tabs[5]:  # Add to your main tabs list
+    st.subheader("🌈 Multi-Channel Word Cloud Comparison")
+
+    # === User options ===
+    available_channels = sorted(filtered_df["Channel"].dropna().unique())
+    selected = st.multiselect("Select 2–5 channels to compare", available_channels, default=available_channels[:3])
+
+    min_freq = st.slider("Minimum Word Frequency", 1, 20, 3)
+
+    if not (2 <= len(selected) <= 5):
+        st.info("Please select between 2 and 5 channels to generate the comparison.")
+    else:
+        # === Collect frequencies and word-channel map ===
+        word_freq_total = Counter()
+        word_channel_map = defaultdict(set)
+        word_freq_per_channel = {}
+
+        def get_word_freq(df, channel):
+            texts = df[df["Channel"] == channel]["Text"].dropna().str.cat(sep=" ")
+            words = re.findall(r"\b\w+\b", texts.lower())
+            words = [w for w in words if w not in stop_words and len(w) > 1]
+            return Counter(words)
+
+        for channel in selected:
+            freq = get_word_freq(filtered_df, channel)
+            filtered_freq = {word: count for word, count in freq.items() if count >= min_freq}
+            word_freq_per_channel[channel] = filtered_freq
+            for word, count in filtered_freq.items():
+                word_freq_total[word] += count
+                word_channel_map[word].add(channel)
+
+        # === Define color mapping by number of channels ===
+        def get_color_by_channel_count(count):
+            if count == 1:
+                return "red"
+            elif count == 2:
+                return "purple"
+            else:
+                return "green"
+
+        color_map = {word: get_color_by_channel_count(len(channels)) for word, channels in word_channel_map.items()}
+
+        def color_func(word, **kwargs):
+            return color_map.get(word, "gray")
+
+        # === Generate word cloud ===
+        wc = WordCloud(width=1000, height=500, background_color="white", color_func=color_func)\
+            .generate_from_frequencies(word_freq_total)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.imshow(wc, interpolation="bilinear")
+        ax.axis("off")
+        ax.set_title("Word Cloud by Channel Overlap\nRed = Unique, Purple = Shared by 2, Green = Shared by 3+", fontsize=14)
+        st.pyplot(fig)
+
+        # === Export as PNG ===
+        buf = BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight")
+        buf.seek(0)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        st.download_button(
+            label="📥 Download Word Cloud as PNG",
+            data=buf,
+            file_name=f"wordcloud_channels_{'_'.join(selected)}_minfreq{min_freq}_{timestamp}.png",
+            mime="image/png"
+        )
