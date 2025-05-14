@@ -319,10 +319,9 @@ with tabs[4]:
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english') + stopwords.words('swedish'))
 
-with tabs[5]:  # Add to your main tabs list
-    st.subheader("🌈 Multi-Channel Word Cloud Comparison")
+with tabs[5]:
+    st.subheader("🌈 Interactive Word Cloud by Channel Overlap")
 
-    # === User options ===
     available_channels = sorted(filtered_df["Channel"].dropna().unique())
     selected = st.multiselect("Select 2–5 channels to compare", available_channels, default=available_channels[:3])
 
@@ -331,7 +330,7 @@ with tabs[5]:  # Add to your main tabs list
     if not (2 <= len(selected) <= 5):
         st.info("Please select between 2 and 5 channels to generate the comparison.")
     else:
-        # === Collect frequencies and word-channel map ===
+        # === Collect word frequencies and channel occurrences ===
         word_freq_total = Counter()
         word_channel_map = defaultdict(set)
         word_freq_per_channel = {}
@@ -350,39 +349,54 @@ with tabs[5]:  # Add to your main tabs list
                 word_freq_total[word] += count
                 word_channel_map[word].add(channel)
 
-        # === Define color mapping by number of channels ===
-        def get_color_by_channel_count(count):
-            if count == 1:
-                return "red"
-            elif count == 2:
-                return "purple"
-            else:
-                return "green"
+        # === Build word data for Plotly ===
+        rows = []
+        for word, chans in word_channel_map.items():
+            rows.append({
+                "word": word,
+                "frequency": word_freq_total[word],
+                "channels": ", ".join(sorted(chans)),
+                "channel_count": len(chans)
+            })
 
-        color_map = {word: get_color_by_channel_count(len(channels)) for word, channels in word_channel_map.items()}
+        df_wc = pd.DataFrame(rows)
 
-        def color_func(word, **kwargs):
-            return color_map.get(word, "gray")
+        # === Add fake layout positions for visual variety ===
+        np.random.seed(42)
+        df_wc["x"] = np.random.normal(size=len(df_wc))
+        df_wc["y"] = np.random.normal(size=len(df_wc))
 
-        # === Generate word cloud ===
-        wc = WordCloud(width=1000, height=500, background_color="white", color_func=color_func)\
-            .generate_from_frequencies(word_freq_total)
-
-        fig, ax = plt.subplots(figsize=(12, 6))
-        ax.imshow(wc, interpolation="bilinear")
-        ax.axis("off")
-        ax.set_title("Word Cloud by Channel Overlap\nRed = Unique, Purple = Shared by 2, Green = Shared by 3+", fontsize=14)
-        st.pyplot(fig)
-
-        # === Export as PNG ===
-        buf = BytesIO()
-        fig.savefig(buf, format="png", bbox_inches="tight")
-        buf.seek(0)
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        st.download_button(
-            label="📥 Download Word Cloud as PNG",
-            data=buf,
-            file_name=f"wordcloud_channels_{'_'.join(selected)}_minfreq{min_freq}_{timestamp}.png",
-            mime="image/png"
+        # === Generate Plotly figure ===
+        fig = px.scatter(
+            df_wc,
+            x="x",
+            y="y",
+            size="frequency",
+            color="channel_count",
+            hover_name="word",
+            hover_data={
+                "frequency": True,
+                "channels": True,
+                "channel_count": True,
+                "x": False,
+                "y": False
+            },
+            text="word"
         )
+
+        fig.update_traces(
+            textposition="top center",
+            marker=dict(line=dict(width=0.5, color="black")),
+            textfont=dict(size=14)
+        )
+
+        fig.update_layout(
+            height=700,
+            showlegend=False,
+            title="Interactive Word Cloud by Channel Overlap<br><sub>Hover to see word details</sub>",
+            margin=dict(l=20, r=20, t=50, b=20),
+            xaxis=dict(showgrid=False, zeroline=False, visible=False),
+            yaxis=dict(showgrid=False, zeroline=False, visible=False)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
