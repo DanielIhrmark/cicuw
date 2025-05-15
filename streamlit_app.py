@@ -402,49 +402,52 @@ with tabs[5]:
         )
 
         st.plotly_chart(fig, use_container_width=True)
-
-with tabs[6]:
+        
         st.subheader("🧠 Channel-Specific Word Signatures (TF-IDF)")
 
-    # === TF-IDF Parameters ===
-    tfidf_top_n = st.slider("Top N words per channel (TF-IDF)", 5, 30, 10)
-    tfidf_min_freq = st.slider("Minimum word frequency for TF-IDF", 1, 10, 3)
-
-    # === Prepare channel texts ===
-    channel_docs = []
-    valid_channels = []
-    for channel in selected:
-        texts = filtered_df[filtered_df["Channel"] == channel]["Text"].dropna().tolist()
-        full_text = " ".join(texts).lower()
-        words = re.findall(r"\b\w+\b", full_text)
-        words = [w for w in words if w not in stop_words and len(w) > 1]
-        freq = Counter(words)
-        if sum(freq.values()) >= tfidf_min_freq:
-            valid_channels.append(channel)
-            channel_docs.append(" ".join([w for w in words if freq[w] >= tfidf_min_freq]))
-
-    if len(channel_docs) < 2:
-        st.warning("Not enough valid channels with sufficient text to compute TF-IDF.")
-    else:
-        # === Run TF-IDF ===
-        vectorizer = TfidfVectorizer(max_features=1000)
-        tfidf_matrix = vectorizer.fit_transform(channel_docs)
-        terms = vectorizer.get_feature_names_out()
-
-        for i, channel in enumerate(valid_channels):
-            scores = tfidf_matrix[i].toarray().flatten()
-            top_indices = scores.argsort()[::-1][:tfidf_top_n]
-            top_terms = [terms[j] for j in top_indices]
-            top_scores = [scores[j] for j in top_indices]
-
-            df_tfidf = pd.DataFrame({
-                "word": top_terms,
-                "score": top_scores
-            })
-
-            st.markdown(f"**Top {tfidf_top_n} TF-IDF words for channel: _{channel}_**")
-            tfidf_fig = px.bar(df_tfidf, x="score", y="word", orientation="h",
-                               labels={"score": "TF-IDF Score", "word": "Word"},
-                               height=300)
-            tfidf_fig.update_layout(yaxis=dict(categoryorder="total ascending"))
-            st.plotly_chart(tfidf_fig, use_container_width=True)
+        # === TF-IDF Parameters ===
+        tfidf_top_n = st.slider("Top N words per channel (TF-IDF)", 5, 30, 10)
+        tfidf_min_freq = st.slider("Minimum word frequency for TF-IDF", 1, 10, 3)
+    
+        # === Prepare channel texts ===
+        channel_docs = []
+        valid_channels = []
+        for channel in selected:
+            texts = filtered_df[filtered_df["Channel"] == channel]["Text"].dropna().tolist()
+            full_text = " ".join(texts).lower()
+            words = re.findall(r"\b\w+\b", full_text)
+            words = [w for w in words if w not in stop_words and len(w) > 1]
+            freq = Counter(words)
+            if sum(freq.values()) >= tfidf_min_freq:
+                valid_channels.append(channel)
+                channel_docs.append(" ".join([w for w in words if freq[w] >= tfidf_min_freq]))
+    
+        if len(channel_docs) < 2:
+            st.warning("Not enough valid channels with sufficient text to compute TF-IDF.")
+        else:
+            # === Run TF-IDF ===
+            vectorizer = TfidfVectorizer(max_features=1000)
+            tfidf_matrix = vectorizer.fit_transform(channel_docs)
+            terms = vectorizer.get_feature_names_out()
+    
+            for i, channel in enumerate(valid_channels):
+                scores = tfidf_matrix[i].toarray().flatten()
+                top_indices = scores.argsort()[::-1][:tfidf_top_n]
+                top_terms = [terms[j] for j in top_indices]
+                top_scores = [scores[j] for j in top_indices]
+    
+                df_tfidf = pd.DataFrame({
+                    "word": top_terms,
+                    "score": top_scores
+                })
+    
+                st.markdown(f"**Top {tfidf_top_n} TF-IDF words for channel: _{channel}_**")
+                tfidf_fig = px.bar(df_tfidf, x="score", y="word", orientation="h",
+                                   labels={"score": "TF-IDF Score", "word": "Word"},
+                                   height=300)
+                tfidf_fig.update_layout(yaxis=dict(categoryorder="total ascending"))
+                st.plotly_chart(tfidf_fig, use_container_width=True)
+    
+    
+    
+    
