@@ -5,3 +5,5 @@ openpyxl
 plotly
 nltk
 scikit-learn
+wordcloud
+matplotlib
