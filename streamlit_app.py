@@ -7,7 +7,10 @@ import io
 import numpy as np
 import plotly.express as px
 import streamlit.components.v1 as components
+import matplotlib.pyplot as plt
 
+from wordcloud import WordCloud
+from io import BytesIO
 from collections import Counter, defaultdict
 import nltk
 from nltk.corpus import stopwords
@@ -448,6 +451,38 @@ with tabs[5]:
                 tfidf_fig.update_layout(yaxis=dict(categoryorder="total ascending"))
                 st.plotly_chart(tfidf_fig, use_container_width=True)
     
+        st.subheader("☁️ Word Cloud of Selected Channels")
     
+        wordcloud_min_freq = st.slider("Minimum word frequency for Word Cloud", 1, 20, 3)
+        max_words_wc = st.slider("Maximum number of words", 50, 500, 100, step=50)
+    
+        texts_combined = filtered_df[filtered_df["Channel"].isin(selected)]["Text"].dropna().str.cat(sep=" ").lower()
+        words = re.findall(r"\b\w+\b", texts_combined)
+        words = [w for w in words if w not in stop_words and len(w) > 1]
+    
+        freq = Counter(words)
+        freq = {word: count for word, count in freq.items() if count >= wordcloud_min_freq}
+        if not freq:
+            st.warning("No words meet the frequency threshold.")
+        else:
+            wc = WordCloud(width=900, height=400, background_color="white", max_words=max_words_wc)
+            wc.generate_from_frequencies(freq)
+    
+            fig, ax = plt.subplots(figsize=(12, 5))
+            ax.imshow(wc, interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
+    
+            # Optional: download as PNG
+            buf = BytesIO()
+            fig.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            st.download_button(
+                label="📥 Download Word Cloud as PNG",
+                data=buf,
+                file_name="wordcloud_selected_channels.png",
+                mime="image/png"
+            )
+
     
     
