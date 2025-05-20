@@ -128,7 +128,7 @@ with tabs[0]:
         df_display = df_display.drop(columns=["Column"])
 
     # Define and validate preferred columns
-    preferred_columns = ["Published Date", "Channel", "URL", "Topic", "Sentiment_Label", "Text", "Sentiment_Negative", "Sentiment_Neutral", "Sentiment_Positive"]
+    preferred_columns = ["Published Date", "Title", "Views", "Channel", "URL", "Topic", "Sentiment_Label", "Text", "Sentiment_Negative", "Sentiment_Neutral", "Sentiment_Positive"]
     existing_columns = [col for col in preferred_columns if col in df_display.columns]
     if not existing_columns:
         existing_columns = df_display.columns.tolist()
